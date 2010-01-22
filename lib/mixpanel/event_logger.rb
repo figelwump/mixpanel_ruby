@@ -44,7 +44,7 @@ module Mixpanel
       params[:data] = encoded
       param_strings = []
       params.each_pair {|key,val|
-        param_strings << "#{key}=#{CGI.escape(val)}"
+        param_strings << "#{key}=#{CGI.escape(val.to_s)}"
       }
       url = "#{@@endpoint}/track/?#{param_strings.join('&')}"
       return url
