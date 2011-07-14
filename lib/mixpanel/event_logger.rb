@@ -1,12 +1,13 @@
 require 'base64'
 require 'json'
 require 'net/http'
+require 'net/https'
 require 'uri'
 require 'cgi'
 
 module Mixpanel
   class EventLogger
-    @@endpoint = 'http://api.mixpanel.com'
+    @@endpoint = 'https://api.mixpanel.com'
     
     attr_accessor :logger
     
@@ -81,12 +82,17 @@ module Mixpanel
       uri = URI.parse( url )
       req = Net::HTTP::Post.new(uri.path)
       req.body = uri.query
-      res = Net::HTTP.start(uri.host, uri.port) {|http|
-        http.request(req)
+
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = true
+      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+
+      res = http.start { |http_sess|
+        http_sess.request(req)
       }
-      
+
       if( !res.is_a?(Net::HTTPSuccess) )
-        error = "Failed to log event:#{name}, properties:#{props.inspect}"
+        error = "Failed to log event with url:#{url}"
         if( @logger )
           @logger.error( error )
         else
