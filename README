@@ -1,3 +1,7 @@
 API to access mixpanel
 
 Event recording is working, alpha
+
+Usage example:
+    mixpanel_api = Mixpanel::EventLogger.new(<MIXPANEL_API_KEY>, {:ssl => true})
+    mixpanel_api.record(<EVENT_NAME>)
