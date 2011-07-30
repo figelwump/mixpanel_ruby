@@ -7,12 +7,15 @@ require 'cgi'
 
 module Mixpanel
   class EventLogger
-    @@endpoint = 'https://api.mixpanel.com'
+    @@https_endpoint = 'https://api.mixpanel.com'
+    @@http_endpoint = 'http://api.mixpanel.com'
     
     attr_accessor :logger
     
-    def initialize( token )
+    def initialize( token, options = {} )
       @token = token
+      @options = options
+      @options[:ssl] = true if @options[:ssl].nil?
       if( Object.const_defined?(:RAILS_DEFAULT_LOGGER) )
         @logger = Object.const_get(:RAILS_DEFAULT_LOGGER)
       end
@@ -58,7 +61,7 @@ module Mixpanel
         event_props[:ip] = request.remote_ip if( !props[:ip] )
         event_props[:distinct_id] = request.remote_ip if( !props[:distinct_id] )
       end
-      
+
       data = { :event => name, :properties => event_props }
       encoded = Base64::encode64(data.to_json).gsub(/\s/, '')
       params[:data] = encoded
@@ -66,7 +69,9 @@ module Mixpanel
       params.each_pair {|key,val|
         param_strings << "#{key}=#{CGI.escape(val.to_s)}"
       }
-      url = "#{@@endpoint}/track/?#{param_strings.join('&')}"
+
+      endpoint = @options[:ssl] ? @@https_endpoint : @@http_endpoint
+      url = "#{endpoint}/track/?#{param_strings.join('&')}"
       return url
     end
     
@@ -84,8 +89,10 @@ module Mixpanel
       req.body = uri.query
 
       http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = true
-      http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      if @options[:ssl]
+        http.use_ssl = true 
+        http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+      end
 
       res = http.start { |http_sess|
         http_sess.request(req)
